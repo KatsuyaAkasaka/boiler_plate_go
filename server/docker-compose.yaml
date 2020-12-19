@@ -14,14 +14,3 @@ services:
       - ./initdb.d/:/docker-entrypoint-initdb.d
     ports:
       - 3306:3306
-  # api:
-  #   build:
-  #     context: ./
-  #     dockerfile: ./cmd/api/Dockerfile
-  #   volumes:
-  #     - ./:/go/src/github.com/KatsuyaAkasaka/templatee_go
-  #   command: go run ./cmd/api/main.go
-  #   ports:
-  #     - 50051:50051
-  #   depends_on:
-  #     - mysql

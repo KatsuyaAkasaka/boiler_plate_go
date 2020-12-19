@@ -1,0 +1,9 @@
+db:
+  host: "127.0.0.1"
+  user: "root"
+  password: "root"
+  port: "3306"
+api:
+  host: "api-service:50051"
+  port: "3000"
+  version: "v1"

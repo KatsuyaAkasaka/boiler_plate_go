@@ -1,0 +1,2 @@
+export ENV=local
+export ROOT_PATH=/local/path/to/this/repo

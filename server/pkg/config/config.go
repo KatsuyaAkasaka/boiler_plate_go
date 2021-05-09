@@ -4,19 +4,27 @@ import (
 	"os"
 	"path/filepath"
 
-	log "github.com/KatsuyaAkasaka/boiler_plate_go/server/pkg/logger"
+	log "github.com/KatsuyaAkasaka/boiler_plate_go/server/pkg/adapter/logger"
 	"github.com/spf13/viper"
 )
 
-type ConfMap struct {
-	Api    map[string]interface{}
-	DB     map[string]interface{}
-	Stripe map[string]interface{}
+var confMap *ConfMap
+
+func GetConf() *ConfMap {
+	return confMap
 }
 
-func GetConf(env string) *ConfMap {
-	rootPath := os.Getenv("ROOT_PATH")
-	viper.AddConfigPath(filepath.Join(rootPath, "server", "pkg", "config"))
+type ConfMap struct {
+	Gateway *GatewayInfo
+	DB      *DBInfo
+	Stripe  *StripeInfo
+	AWS     *AWSInfo
+	Redis   *RedisInfo
+}
+
+func InitConf(env string) *ConfMap {
+	rootPath, _ := os.Getwd()
+	viper.AddConfigPath(filepath.Join(rootPath, "pkg", "config", "yaml"))
 	viper.SetConfigType("yaml")
 	viper.SetConfigName("common")
 	err := viper.ReadInConfig()
@@ -29,10 +37,11 @@ func GetConf(env string) *ConfMap {
 	if err != nil {
 		log.GetLogger(env).Panic(err)
 	}
-	conf := ConfMap{
-		Api:    viper.GetStringMap("api"),
-		DB:     viper.GetStringMap("db"),
-		Stripe: viper.GetStringMap("stripe"),
+	confMap = &ConfMap{
+		Gateway: parseGatewayConf(viper.GetStringMap("gateway")),
+		DB:      parseDBConf(viper.GetStringMap("db")),
+		AWS:     parseAWSConf(viper.GetStringMap("aws")),
+		Stripe:  parseStripeConf(viper.GetStringMap("stripe")),
 	}
-	return &conf
+	return confMap
 }

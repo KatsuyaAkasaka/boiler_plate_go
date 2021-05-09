@@ -4,12 +4,12 @@ import (
 	"os"
 	"testing"
 
+	"github.com/KatsuyaAkasaka/boiler_plate_go/server/pkg/adapter/datastore"
+	log "github.com/KatsuyaAkasaka/boiler_plate_go/server/pkg/adapter/logger"
 	"github.com/KatsuyaAkasaka/boiler_plate_go/server/pkg/config"
-	"github.com/KatsuyaAkasaka/boiler_plate_go/server/pkg/database"
 	"github.com/KatsuyaAkasaka/boiler_plate_go/server/pkg/domain/entity"
 	"github.com/KatsuyaAkasaka/boiler_plate_go/server/pkg/domain/repository"
-	log "github.com/KatsuyaAkasaka/boiler_plate_go/server/pkg/logger"
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 )
 
 var testRepo *repository.Repositories = newTestRepository()
@@ -29,14 +29,14 @@ func newTestRepository() *repository.Repositories {
 	confMap := config.GetConf("test")
 	dbConf := confMap.DB
 
-	dbInfo := database.DBInfo{
+	dbInfo := datastore.DBInfo{
 		UserName: dbConf["user"].(string),
 		Password: dbConf["password"].(string),
 		Host:     dbConf["host"].(string),
 		Port:     dbConf["port"].(string),
 		Name:     dbConf["name"].(string),
 	}
-	testDB = database.InitDB(&dbInfo)
+	testDB = datastore.InitDB(&dbInfo)
 	testDB.LogMode(false)
 	return NewRepository(testDB)
 }

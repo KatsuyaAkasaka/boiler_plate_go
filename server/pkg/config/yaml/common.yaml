@@ -1,0 +1,20 @@
+aws:
+  region: "ap-northeast-1"
+  public_bucket: "prod-public-aaa"
+  private_bucket: "prod-private-aaa"
+db:
+  host: "127.0.0.1"
+  user: "root"
+  password: "root"
+  port: "3306"
+  log_mode: 4
+  name: "boiler_plate_go"
+gateway:
+  host: "api-service:50051"
+  port: "3000"
+  version: "v1"
+stripe:
+  production_mode: false
+  publishable_key: "pk_test_aaa"
+  use_mock: true
+  log_level: 3

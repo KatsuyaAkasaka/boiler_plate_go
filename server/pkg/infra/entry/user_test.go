@@ -3,8 +3,8 @@ package entry
 import (
 	"testing"
 
+	e "github.com/KatsuyaAkasaka/boiler_plate_go/server/pkg/adapter/error"
 	"github.com/KatsuyaAkasaka/boiler_plate_go/server/pkg/domain/entity"
-	e "github.com/KatsuyaAkasaka/boiler_plate_go/server/pkg/error"
 	"github.com/go-playground/assert/v2"
 )
 

@@ -1,92 +1,170 @@
 package handler
 
 import (
-	e "github.com/KatsuyaAkasaka/boiler_plate_go/server/pkg/error"
+	e "github.com/KatsuyaAkasaka/boiler_plate_go/server/pkg/adapter/error"
+	"github.com/KatsuyaAkasaka/boiler_plate_go/server/pkg/domain/entity"
+	"github.com/KatsuyaAkasaka/boiler_plate_go/server/pkg/middleware"
 	"github.com/KatsuyaAkasaka/boiler_plate_go/server/pkg/usecase"
 	"github.com/KatsuyaAkasaka/boiler_plate_go/server/pkg/usecase/input"
 	"github.com/gin-gonic/gin"
 )
 
 type userHandler struct {
-	router      *gin.RouterGroup
-	userUsecase *usecase.UserUsecase
+	userUsecase   *usecase.UserUsecase
+	systemUsecase *usecase.SystemUsecase
 }
 
-func getUserRouter(r *gin.Engine, path string, ver string) *gin.RouterGroup {
-	return r.Group("users")
-}
-
-func newUserHandler(r *gin.RouterGroup, uc *usecase.Usecases) {
+func newUserHandler(r *gin.RouterGroup, uc *usecase.Usecases, middles *middleware.Middles) {
 	uh := &userHandler{
-		router:      r,
-		userUsecase: uc.User,
+		userUsecase:   uc.User,
+		systemUsecase: uc.System,
 	}
-	r.POST("", uh.createUser())
-	r.GET("/:id", uh.getUser())
-	r.PUT("/:id", uh.updateUser())
-	r.DELETE("/:id", uh.deleteUser())
+	userRouter := r.Group("/users")
+	// userRouterWithUUIDAuth := userRouter.Group(
+	// 	"", middles.JWT.UUIDHandlerFunc(),
+	// )
+	userRouterWithEmailAuth := userRouter.Group(
+		"", middles.JWT.EmailHandlerFunc(),
+	)
+	userRouterWithUUIDAuthNotErr := userRouter.Group(
+		"", middles.JWT.UUIDHandlerNotErrFunc(),
+	)
+	// ユーザ作成 (これはjwtにemailが乗っているので注意)
+	userRouterWithEmailAuth.POST("", uh.createUser())
+	// 指定ユーザ情報取得
+	userRouterWithUUIDAuthNotErr.GET("/:id", uh.getUser())
+	// 指定アカウント削除
+	userRouter.DELETE("/:id", uh.deleteUser())
+
+	meRouter := r.Group(
+		"/me", middles.JWT.UUIDHandlerFunc(),
+	)
+	// 自分のプロフィール取得
+	meRouter.GET("/profile", uh.getMe())
+	// 自分のプロフィール編集
+	meRouter.PATCH("/profile", uh.updateMe())
+	// メール通知の設定変更
+	meRouter.PATCH("/email-notifications", uh.changeEmailNotify())
 }
 
-func (uh *userHandler) createUser() func(*gin.Context) {
+func (uh *userHandler) createUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		email, err := getEmail(c)
+		if err != nil {
+			ReturnErr(c, err)
+			return
+		}
 		var user input.UserReq
 		if err := c.BindJSON(&user); err != nil {
-			returnErr(c, e.Validation.BadRequest)
+			ReturnErr(c, e.System.BadRequest)
 			return
 		}
-		afterUser, err := uh.userUsecase.CreateUser(&user)
+		user.BindEmail(email)
+		res, err := uh.userUsecase.CreateUser(&user)
 		if err != nil {
-			returnErr(c, err)
+			ReturnErr(c, err)
 			return
 		}
-		c.JSON(200, gin.H{
-			"result": *afterUser,
-		})
+		// TODO: お触り会用にコミュニティも作成する
+		// _, err = uh.communityUsecase.CreateCommunity((*entity.UUID)(&res.User.UUID), 2970)
+		// if err != nil {
+		// 	ReturnErr(c, err)
+		// 	return
+		// }
+		ReturnSuccessData(c, &res)
 	}
 }
 
-func (uh *userHandler) getUser() func(*gin.Context) {
+func (uh *userHandler) getMe() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		id := c.Param("id")
-		afterUser, err := uh.userUsecase.GetUser(id)
+		uuid, err := getUUID(c)
 		if err != nil {
-			returnErr(c, err)
+			ReturnErr(c, err)
 			return
 		}
-		c.JSON(200, gin.H{
-			"result": *afterUser,
-		})
+		res, err := uh.userUsecase.GetUserByUUID(uuid)
+		if err != nil {
+			ReturnErr(c, err)
+			return
+		}
+		ReturnSuccessData(c, &res)
 	}
 }
 
-func (uh *userHandler) updateUser() func(*gin.Context) {
+func (uh *userHandler) getUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
+		userID, err := entity.GetUserID(id)
+		if err != nil {
+			ReturnErr(c, err)
+			return
+		}
+		uuid, _ := getUUID(c)
+		afterUser, err := uh.userUsecase.GetUserByUserID(uuid, userID)
+		if err != nil {
+			ReturnErr(c, err)
+			return
+		}
+		ReturnSuccessData(c, &afterUser)
+	}
+}
+
+func (uh *userHandler) updateMe() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		uuid, err := getUUID(c)
+		if err != nil {
+			ReturnErr(c, err)
+			return
+		}
 		var user input.UserReq
 		if err := c.BindJSON(&user); err != nil {
-			returnErr(c, e.Validation.BadRequest)
+			ReturnErr(c, e.System.BadRequest)
 			return
 		}
-		user.BindUserID(id)
-		afterUser, err := uh.userUsecase.UpdateUser(&user)
+		user.BindUUID(uuid)
+		res, err := uh.userUsecase.UpdateUser(&user)
 		if err != nil {
-			returnErr(c, err)
+			ReturnErr(c, err)
 			return
 		}
-		c.JSON(200, gin.H{
-			"result": *afterUser,
-		})
+		ReturnSuccessData(c, &res)
 	}
 }
 
-func (uh *userHandler) deleteUser() func(*gin.Context) {
+func (uh *userHandler) changeEmailNotify() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		id := c.Param("id")
-		err := uh.userUsecase.DeleteUser(id)
+		uuid, err := getUUID(c)
 		if err != nil {
-			returnErr(c, err)
+			ReturnErr(c, err)
 			return
 		}
-		returnSuccess(c)
+		res, err := uh.userUsecase.ChangeEmailNotify(uuid)
+		if err != nil {
+			ReturnErr(c, err)
+			return
+		}
+		ReturnSuccessData(c, &res)
+	}
+}
+
+func (uh *userHandler) deleteUser() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id := c.Param("id")
+		uuid, err := entity.GetUUID(id)
+		if err != nil {
+			ReturnErr(c, err)
+			return
+		}
+		pass := c.Query("pass")
+		if !entity.CheckPass(pass) {
+			ReturnErr(c, e.System.BadRequest)
+			return
+		}
+		err = uh.userUsecase.DeleteUser(uuid)
+		if err != nil {
+			ReturnErr(c, err)
+			return
+		}
+		ReturnSuccess(c)
 	}
 }

@@ -1,8 +1,8 @@
 package entry
 
 import (
-	e "github.com/KatsuyaAkasaka/boiler_plate_go/server/pkg/error"
-	"github.com/jinzhu/gorm"
+	e "github.com/KatsuyaAkasaka/boiler_plate_go/server/pkg/adapter/error"
+	"gorm.io/gorm"
 )
 
 func transact(db *gorm.DB, txFunc func(*gorm.DB) (interface{}, e.Err)) (data interface{}, err e.Err) {

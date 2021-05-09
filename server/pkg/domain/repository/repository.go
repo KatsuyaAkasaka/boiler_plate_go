@@ -1,5 +1,6 @@
 package repository
 
 type Repositories struct {
-	User UserRepository
+	User   UserRepository
+	System SystemRepository
 }

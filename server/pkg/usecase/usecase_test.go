@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	log "github.com/KatsuyaAkasaka/boiler_plate_go/server/pkg/logger"
+	log "github.com/KatsuyaAkasaka/boiler_plate_go/server/pkg/adapter/logger"
 	mock "github.com/KatsuyaAkasaka/boiler_plate_go/server/pkg/usecase/mock"
 	"github.com/golang/mock/gomock"
 )
